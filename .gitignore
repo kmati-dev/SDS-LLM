@@ -19,4 +19,5 @@ venv/
 .venv/
 env/
 
-# Output assets (Optional: ignore or keep depending on preference, we will keep PNG for demo if needed but usually better to ignore large generated media, let's keep it open)
+# Artifacts - we track simulator configs but ignore large generated images if requested
+# artifacts/*.png

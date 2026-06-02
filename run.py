@@ -1,9 +1,22 @@
 import os
+import json
 import argparse
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
 
-from simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+from src.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+
+
+def load_default_config() -> dict:
+    """Loads default configuration from the configs directory."""
+    config_path = os.path.join(os.path.dirname(__file__), "configs", "simulator_config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load config from {config_path}: {e}")
+    return {}
 
 
 def get_wiki_style_corpus() -> str:
@@ -42,20 +55,24 @@ def get_test_target_text() -> str:
     """
 
 
-def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int):
+def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int, artifacts_dir: str):
     print("=" * 70)
     print(f"Starting Speculative Decoding Simulator Sweep")
-    print(f"Tokenizer:  {tokenizer_name}")
-    print(f"N-gram Size: {n_gram_size}-gram")
-    print(f"Max Draft:   K = {max_draft}")
+    print(f"Tokenizer:      {tokenizer_name}")
+    print(f"N-gram Size:    {n_gram_size}-gram")
+    print(f"Max Draft:      K = {max_draft}")
+    print(f"Artifacts Dir:  {artifacts_dir}")
     print("=" * 70)
+
+    # Ensure artifacts directory exists
+    os.makedirs(artifacts_dir, exist_ok=True)
 
     # 1. Load Tokenizer
     print("Loading HuggingFace tokenizer...")
     try:
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     except Exception as e:
-        print(f"Error loading {tokenizer_name}, falling back to 'gpt2'...")
+        print(f"Error loading {tokenizer_name}, falling back to 'gpt2': {e}")
         tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
     # 2. Tokenize Corpus and Target Text
@@ -72,7 +89,6 @@ def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int):
     draft_sizes = list(range(1, max_draft + 1))
     speedups = []
     avg_accepted = []
-    step_counts = []
 
     # 3. Run non-speculative baseline (K=0)
     baseline_metrics = PlaybackMetrics()
@@ -104,7 +120,6 @@ def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int):
         
         speedups.append(summary["speedup_ratio"])
         avg_accepted.append(summary["average_accepted_per_step"])
-        step_counts.append(summary["speculative_steps"])
 
         print(
             f"Speculative (K={k}): "
@@ -118,13 +133,16 @@ def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int):
     print("Benchmark complete! Generating premium statistics chart...")
 
     # 5. Plotting results with a premium, sleek aesthetic
-    plt.style.use("seaborn-v0_8-whitegrid")
+    try:
+        plt.style.use("seaborn-v0_8-whitegrid")
+    except Exception:
+        plt.style.use("ggplot")  # Fallback
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
     # Vibrant custom colors
     primary_color = "#3b82f6"  # Premium royal blue
     secondary_color = "#8b5cf6"  # Soft indigo/purple
-    accent_color = "#10b981"  # Emerald green
 
     # Left Plot: Speedup Ratio
     ax1.plot(draft_sizes, speedups, marker='o', color=primary_color, linewidth=2.5, markersize=8, label="Speedup Ratio")
@@ -154,32 +172,41 @@ def run_benchmark(tokenizer_name: str, n_gram_size: int, max_draft: int):
     )
     plt.tight_layout()
     
-    # Save the plot
-    output_filename = "speedup_benchmark.png"
+    # Save the plot inside artifacts folder
+    output_filename = os.path.join(artifacts_dir, "speedup_benchmark.png")
     plt.savefig(output_filename, dpi=300)
     print(f"Chart saved successfully to '{output_filename}'!")
 
 
 if __name__ == "__main__":
+    # Load defaults from configs
+    defaults = load_default_config()
+
     parser = argparse.ArgumentParser(description="Speculate Decoding Simulator Sweep & Benchmark")
     parser.add_argument(
         "--tokenizer", 
         type=str, 
-        default="Qwen/Qwen2.5-0.5B-Instruct", 
-        help="HuggingFace tokenizer name to load (default: Qwen/Qwen2.5-0.5B-Instruct)"
+        default=defaults.get("tokenizer_name", "Qwen/Qwen2.5-0.5B-Instruct"), 
+        help="HuggingFace tokenizer name to load"
     )
     parser.add_argument(
         "--n", 
         type=int, 
-        default=3, 
-        help="N-gram context size for the draft model (default: 3)"
+        default=defaults.get("n_gram_size", 3), 
+        help="N-gram context size for the draft model"
     )
     parser.add_argument(
         "--max_draft", 
         type=int, 
-        default=6, 
-        help="Maximum draft size (K) to benchmark sweep (default: 6)"
+        default=defaults.get("max_draft", 6), 
+        help="Maximum draft size (K) to benchmark sweep"
+    )
+    parser.add_argument(
+        "--artifacts_dir", 
+        type=str, 
+        default=defaults.get("artifacts_dir", "artifacts"), 
+        help="Directory to save generated charts"
     )
 
     args = parser.parse_args()
-    run_benchmark(args.tokenizer, args.n, args.max_draft)
+    run_benchmark(args.tokenizer, args.n, args.max_draft, args.artifacts_dir)

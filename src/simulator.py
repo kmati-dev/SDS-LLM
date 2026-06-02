@@ -1,5 +1,5 @@
 from typing import Any, Optional, Dict, List
-from interfaces import AbstractDrafter, AbstractVerifier, AbstractPlayback
+from src.interfaces import AbstractDrafter, AbstractVerifier, AbstractPlayback
 
 
 class NGramDrafter(AbstractDrafter):

@@ -1,8 +1,8 @@
 import pytest
 from typing import Any, Optional, Dict, List
 
-from interfaces import AbstractDrafter, AbstractVerifier, AbstractPlayback
-from simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+from src.interfaces import AbstractDrafter, AbstractVerifier, AbstractPlayback
+from src.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
 
 
 # =============================================================================
