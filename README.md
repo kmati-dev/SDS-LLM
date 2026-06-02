@@ -61,33 +61,6 @@
 * **คลังข้อมูลต้นแบบของ Drafter (Corpus Tokens)**: ข้อความบทความเชิงเทคนิคภาษาอังกฤษจำลองสถานการณ์ "logs ข้อความในอดีต" (Retrieval Database)
 * **ข้อความเป้าหมายรันจำลอง (Target Tokens)**: ข้อความสั้นที่จำลองสถานการณ์จริงที่ LLM กำลังสร้างคำใหม่ (Target output sequence)
 
----
-
-### 2. ล็อกการทำงานจริงในเทอร์มินัล (Terminal Output Analysis)
-
-```text
-Baseline (Normal Decoding): 134 steps, 1.0x Speedup
-Speculative (K=1): Steps = 75 | Avg Accept = 0.79 | Speedup = 1.79x
-Speculative (K=2): Steps = 64 | Avg Accept = 1.11 | Speedup = 2.09x
-Speculative (K=3): Steps = 50 | Avg Accept = 1.68 | Speedup = 2.68x
-Speculative (K=4): Steps = 48 | Avg Accept = 1.79 | Speedup = 2.79x
-Speculative (K=5): Steps = 43 | Avg Accept = 2.12 | Speedup = 3.12x
-```
-
-* **Baseline (1.0x)**: การรันแบบดั้งเดิมที่ต้องเรียกใช้งานโมเดลใหญ่ **134 รอบ**
-* **K = 3 (จุดคุ้มค่าทางเศรษฐศาสตร์ - Sweet Spot)**: ให้ผู้ร่างเดาคำ 3 คำ ส่งผลให้ขั้นตอนรันลดลงเหลือ **50 รอบ** เร่งความเร็วขึ้นอย่างก้าวกระโดดเป็น **2.68 เท่า**
-* **K = 5 (ประหยัดสูงสุด)**: ขั้นตอนรันโมเดลลดลงเหลือต่ำสุดเพียง **43 รอบ** และได้ความเร็วพุ่งสูงสุดถึง **3.12 เท่า**
-
----
-
-### 3. แผนภูมิวิเคราะห์ประสิทธิภาพ (Performance Charts)
-
-ภาพแผนภูมิความเร็วและอัตราการยอมรับคำที่สร้างขึ้นจะถูกบันทึกไว้อย่างปลอดภัยที่ **[artifacts/speedup_benchmark.png](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/artifacts/speedup_benchmark.png)**
-
-* ** Inference Acceleration (Speedup Ratio)**: แสดงถึงความคุ้มค่าของการเพิ่มขนาดดราฟต์ $K$ ซึ่งจุดหักมุมความชันเด่นชัดจะอยู่ที่ $K=3$ จากนั้นจะเริ่มแบนราบลงตามกฎการลดน้อยถอยลงของผลตอบแทน (Law of Diminishing Returns)
-
----
-
 ## 🚀 วิธีการทดสอบและสั่งใช้งานจริง
 
 ### 1. วิธีรันทดสอบ Unit Tests (ผ่าน pytest)
