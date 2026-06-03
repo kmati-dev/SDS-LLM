@@ -120,6 +120,46 @@ def test_ngram_drafter_draft_size_exceeds_remaining_corpus():
     assert len(result) <= 2   # at most 2 tokens remain after [3]
 
 
+def test_ngram_drafter_boundary_condition():
+    """Verify that matches at the very end of the corpus (that have continuation) are matched correctly."""
+    # Corpus: [1, 2, 3, 4]
+    # Prompt ending with [2, 3] should match [2, 3] at index 1 and speculate [4]
+    corpus = [1, 2, 3, 4]
+    drafter = NGramDrafter(corpus_tokens=corpus, n=3, draft_size=1)
+    result = drafter.generate_draft([2, 3])
+    assert result == [4]
+
+
+def test_ngram_drafter_strategies():
+    """Verify frequency, recency, and first matching strategies in NGramDrafter."""
+    # [9, 9, 1] (index 0)
+    # [9, 9, 2] (index 3)
+    # [9, 9, 2] (index 6)
+    corpus_strat = [9, 9, 1, 9, 9, 2, 9, 9, 2]
+    
+    # first strategy -> [1]
+    drafter_first = NGramDrafter(corpus_tokens=corpus_strat, n=3, draft_size=1, matching_strategy="first")
+    assert drafter_first.generate_draft([9, 9]) == [1]
+    
+    # recency strategy -> [2]
+    drafter_recency = NGramDrafter(corpus_tokens=corpus_strat, n=3, draft_size=1, matching_strategy="recency")
+    assert drafter_recency.generate_draft([9, 9]) == [2]
+    
+    # frequency strategy -> [2] (since [2] appears twice, [1] appears once)
+    drafter_freq = NGramDrafter(corpus_tokens=corpus_strat, n=3, draft_size=1, matching_strategy="frequency")
+    assert drafter_freq.generate_draft([9, 9]) == [2]
+
+
+def test_ngram_drafter_explain_draft():
+    """Verify explain_draft returns a valid explanation dictionary."""
+    corpus = [9, 9, 1, 9, 9, 2, 9, 9, 2]
+    drafter = NGramDrafter(corpus_tokens=corpus, n=3, draft_size=1, matching_strategy="frequency")
+    explanation = drafter.explain_draft([9, 9])
+    assert "n_used" in explanation
+    assert "reason" in explanation
+    assert explanation["chosen_draft"] == [2]
+
+
 # =============================================================================
 # 3. GreedyVerifier
 # =============================================================================

@@ -8,7 +8,7 @@ class NGramDrafter(AbstractDrafter):
     Looks up prefix matches in a provided text corpus (tokens) and speculates next tokens.
     """
 
-    def __init__(self, corpus_tokens: List[int], n: int = 3, draft_size: int = 3) -> None:
+    def __init__(self, corpus_tokens: List[int], n: int = 3, draft_size: int = 3, matching_strategy: str = "frequency") -> None:
         """
         Initialize the N-gram Drafter.
 
@@ -16,10 +16,13 @@ class NGramDrafter(AbstractDrafter):
             corpus_tokens: The database/corpus of token IDs to search for patterns.
             n: The size of the n-gram context (will use up to n-1 tokens for prefix lookup).
             draft_size: The number of tokens to speculate (draft size K).
+            matching_strategy: The strategy to choose draft tokens if multiple matches are found.
+                               Options: "frequency" (default), "recency", "first".
         """
         self.corpus_tokens = corpus_tokens
         self.n = n
         self.draft_size = draft_size
+        self.matching_strategy = matching_strategy
 
     def generate_draft(self, prompt: List[int]) -> List[int]:
         """
@@ -38,15 +41,108 @@ class NGramDrafter(AbstractDrafter):
             search_prefix = prompt[-current_n:]
             prefix_len = len(search_prefix)
 
-            # Find matches in the corpus
-            for i in range(len(self.corpus_tokens) - prefix_len - 1):
+            # Find all matches in the corpus (fixing the boundary condition range)
+            matches = []
+            for i in range(len(self.corpus_tokens) - prefix_len):
                 if self.corpus_tokens[i : i + prefix_len] == search_prefix:
-                    # Found a match! Speculate the next draft_size tokens from here
-                    draft = self.corpus_tokens[i + prefix_len : i + prefix_len + self.draft_size]
+                    matches.append(i)
+
+            if not matches:
+                continue
+
+            # Execute matching strategy to pick the draft tokens
+            if self.matching_strategy == "first":
+                for idx in matches:
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
                     if draft:
                         return draft
+            elif self.matching_strategy == "recency":
+                for idx in reversed(matches):
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
+                    if draft:
+                        return draft
+            else:  # "frequency"
+                from collections import Counter
+                candidates = []
+                for idx in matches:
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
+                    if draft:
+                        candidates.append((tuple(draft), idx))
+                if candidates:
+                    freq = Counter(c[0] for c in candidates)
+                    # Sort by frequency (descending) and then index (descending for recency tiebreaker)
+                    candidates.sort(key=lambda c: (freq[c[0]], c[1]), reverse=True)
+                    return list(candidates[0][0])
 
         return []
+
+    def explain_draft(self, prompt: List[int]) -> Dict[str, Any]:
+        """
+        Explain how the draft was generated for the given prompt context.
+        Useful for Root Cause Analysis (RCA).
+        """
+        if not prompt or not self.corpus_tokens:
+            return {"reason": "Empty prompt or empty corpus"}
+
+        for current_n in range(self.n - 1, 0, -1):
+            if len(prompt) < current_n:
+                continue
+
+            search_prefix = prompt[-current_n:]
+            prefix_len = len(search_prefix)
+
+            matches = []
+            for i in range(len(self.corpus_tokens) - prefix_len):
+                if self.corpus_tokens[i : i + prefix_len] == search_prefix:
+                    matches.append(i)
+
+            if not matches:
+                continue
+
+            explanation = {
+                "n_used": current_n + 1,
+                "prefix_tokens": search_prefix,
+                "total_matches": len(matches),
+                "strategy": self.matching_strategy,
+            }
+
+            if self.matching_strategy == "first":
+                for idx in matches:
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
+                    if draft:
+                        explanation["chosen_match_index"] = idx
+                        explanation["chosen_draft"] = draft
+                        explanation["reason"] = f"First match of prefix {search_prefix} at index {idx}"
+                        return explanation
+            elif self.matching_strategy == "recency":
+                for idx in reversed(matches):
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
+                    if draft:
+                        explanation["chosen_match_index"] = idx
+                        explanation["chosen_draft"] = draft
+                        explanation["reason"] = f"Most recent (last) match of prefix {search_prefix} at index {idx}"
+                        return explanation
+            else:  # "frequency"
+                from collections import Counter
+                candidates = []
+                for idx in matches:
+                    draft = self.corpus_tokens[idx + prefix_len : idx + prefix_len + self.draft_size]
+                    if draft:
+                        candidates.append((tuple(draft), idx))
+                if candidates:
+                    freq = Counter(c[0] for c in candidates)
+                    candidates.sort(key=lambda c: (freq[c[0]], c[1]), reverse=True)
+                    chosen_draft, chosen_idx = candidates[0]
+                    explanation["chosen_match_index"] = chosen_idx
+                    explanation["chosen_draft"] = list(chosen_draft)
+                    explanation["frequency_map"] = {str(list(k)): v for k, v in freq.items()}
+                    explanation["reason"] = (
+                        f"Most frequent continuation {list(chosen_draft)} (frequency {freq[chosen_draft]}) "
+                        f"among {len(candidates)} candidates matching prefix {search_prefix}"
+                    )
+                    return explanation
+
+        return {"reason": "No match found at any n-gram level"}
 
 
 class GreedyVerifier(AbstractVerifier):
@@ -107,6 +203,7 @@ class PlaybackMetrics:
         self.max_accepted_in_single_step = 0
         self.speculative_steps = 0
         self.normal_steps = 0  # Steps taken if doing simple token-by-token decoding
+        self.mismatch_records: List[Dict[str, Any]] = []
 
     def record_step(self, accepted_count: int, rejected_count: int) -> None:
         """Record the metrics for a single simulation step."""
@@ -197,6 +294,42 @@ class SpeculativePlayback(AbstractPlayback):
                 accepted_tokens = verification_result["accepted_tokens"]
                 accepted_count = verification_result["accepted_count"]
                 rejected_count = verification_result["rejected_count"]
+
+                # Track mismatches for RCA
+                if use_drafter and self.drafter is not None and self.metrics is not None:
+                    if not draft_tokens:
+                        explanation = {}
+                        if hasattr(self.drafter, "explain_draft"):
+                            explanation = self.drafter.explain_draft(current_prefix)
+                        mismatch_info = {
+                            "step_index": self.metrics.speculative_steps + 1,
+                            "prompt_context_ids": list(current_prefix),
+                            "draft_token_ids": [],
+                            "accepted_count": 0,
+                            "mismatched_draft_token_id": None,
+                            "expected_token_id": complete_tokens[len(current_prefix)] if len(current_prefix) < len(complete_tokens) else None,
+                            "explanation": explanation
+                        }
+                        self.metrics.mismatch_records.append(mismatch_info)
+                    elif accepted_count < len(draft_tokens):
+                        mismatched_token_id = draft_tokens[accepted_count]
+                        gt_idx = len(current_prefix) + accepted_count
+                        expected_token_id = complete_tokens[gt_idx] if gt_idx < len(complete_tokens) else None
+                        
+                        explanation = {}
+                        if hasattr(self.drafter, "explain_draft"):
+                            explanation = self.drafter.explain_draft(current_prefix)
+                        
+                        mismatch_info = {
+                            "step_index": self.metrics.speculative_steps + 1,
+                            "prompt_context_ids": list(current_prefix),
+                            "draft_token_ids": list(draft_tokens),
+                            "accepted_count": accepted_count,
+                            "mismatched_draft_token_id": mismatched_token_id,
+                            "expected_token_id": expected_token_id,
+                            "explanation": explanation
+                        }
+                        self.metrics.mismatch_records.append(mismatch_info)
 
                 # If the drafter returned nothing or everything was rejected, 
                 # verify will at least return the single recovery token.
