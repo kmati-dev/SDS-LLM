@@ -89,21 +89,23 @@ Step 6: prefix = [..., "Borders"]
 
 | Metric | ค่า |
 |--------|-----|
-| Lexical Overlap (article ↔ summary) | ~40–60% |
-| Token Novelty Rate | ~30–50% ของ summary tokens ไม่มีใน article |
-| Speedup Ratio (K=3, n=2) | ~1.1x |
-| Acceptance Rate | ~20–40% |
-| Step type ที่พบบ่อย | `no_draft`, `full_reject` |
+| Lexical Overlap (article ↔ summary) | 66.7% |
+| Token Novelty Rate | 33.3% |
+| Speedup Ratio (K=3, n=2) | 1.35x |
+| Step type ที่พบบ่อย | `no_draft` (47%), `full_reject` (35%) |
+| Zero-draft rate | 47% |
 
-### 5.2 ผลจาก 10 Samples
+### 5.2 ผลจาก 204,011 Samples (Full Dataset)
 
 | Metric | ค่า |
 |--------|-----|
-| Mean Speedup | ~1.1x – 1.2x |
-| ความแตกต่างระหว่าง samples | น้อย (variance ต่ำ) |
-| Zero-draft rate (เฉลี่ย) | ~40–60% |
+| Mean Speedup | 1.14x |
+| Std Speedup | 0.12 |
+| Min / Max Speedup | 1.00x / 3.25x |
+| Mean Token Novelty | 37.2% (std 15.5%) |
+| Mean Zero-draft rate | 42.7% (std 16.0%) |
 
-Speedup ต่ำอย่างสม่ำเสมอในทุก sample สะท้อนว่าปัญหาเป็นเชิงโครงสร้างของ task ไม่ใช่ความบังเอิญ
+Speedup ต่ำอย่างสม่ำเสมอในทุก sample (`std=0.12`) สะท้อนว่าปัญหาเป็นเชิงโครงสร้างของ task ไม่ใช่ความบังเอิญ
 
 ---
 
