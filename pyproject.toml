@@ -9,6 +9,7 @@ description = "Speculative Decoding Simulator (Greedy Speculative Decoding)"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
+    "torch>=2.0.0",
     "transformers>=4.40.0",
     "datasets>=2.19.0",
     "matplotlib>=3.8.0",

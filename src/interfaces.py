@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Dict, List
+from typing import TYPE_CHECKING, Any, Optional, Dict, List
+
+if TYPE_CHECKING:
+    import torch
 
 
 class AbstractDrafter(ABC):
@@ -93,5 +96,67 @@ class AbstractPlayback(ABC):
 
         Returns:
             The final decoded output string.
+        """
+        pass
+
+
+class AbstractTensorDrafter(ABC):
+    """
+    Tensor-based counterpart of AbstractDrafter for batched speculative decoding.
+
+    Instead of a single ``List[int]`` sequence, the drafter returns a 2D tensor of
+    shape ``[S, T]`` (S candidate sequences, each of depth T). This naturally covers
+    both strategies under a fixed token budget B:
+        - depth-draft:  one long bet      -> S=1, T=B   -> shape [1, B]
+        - width-draft:  several short bets -> S>1, T<B  -> shape [S, T] (S*T <= B)
+    """
+
+    @abstractmethod
+    def generate_draft(self, prompt: List[int]) -> "torch.Tensor":
+        """
+        Generate speculative token guesses as a 2D tensor.
+
+        Args:
+            prompt: List of token IDs representing the current prefix context.
+
+        Returns:
+            A ``torch.long`` tensor of shape ``[S, T]``. Rows shorter than T are
+            right-padded with the PAD sentinel ``-1``. When no match is found an
+            empty tensor of shape ``[0, 0]`` is returned.
+        """
+        pass
+
+
+class AbstractTensorVerifier(ABC):
+    """
+    Tensor-based counterpart of AbstractVerifier.
+
+    Accepts a batch of candidate draft sequences (shape ``[S, T]``), greedily
+    verifies every candidate against the ground-truth sequence, and keeps only the
+    single candidate whose prefix matches the ground truth for the longest run.
+    """
+
+    @abstractmethod
+    def verify(
+        self,
+        draft_tokens: "torch.Tensor",
+        current_prefix: List[int],
+        complete_tokens: List[int],
+    ) -> Dict[str, Any]:
+        """
+        Greedily verify a batch of speculative draft sequences against ground truth.
+
+        Args:
+            draft_tokens: ``torch.long`` tensor of shape ``[S, T]`` (PAD = -1).
+            current_prefix: Token IDs accepted/generated so far.
+            complete_tokens: All ground-truth token IDs for the final sequence.
+
+        Returns:
+            {
+                "accepted_tokens": List[int],  # winning candidate prefix + 1 recovery token
+                "accepted_count": int,         # draft tokens accepted from the winner
+                "rejected_count": int,         # remaining (unaccepted) tokens in the winner
+                "chosen_sequence": int,        # row index of the winning candidate (-1 if none)
+            }
         """
         pass

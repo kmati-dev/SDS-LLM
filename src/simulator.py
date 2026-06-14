@@ -1,5 +1,17 @@
 from typing import Any, Optional, Dict, List
-from src.interfaces import AbstractDrafter, AbstractVerifier, AbstractPlayback
+
+import torch
+
+from src.interfaces import (
+    AbstractDrafter,
+    AbstractVerifier,
+    AbstractPlayback,
+    AbstractTensorDrafter,
+    AbstractTensorVerifier,
+)
+
+# Sentinel used to right-pad candidate rows that are shorter than the draft depth.
+PAD_ID = -1
 
 
 class NGramDrafter(AbstractDrafter):
@@ -78,6 +90,169 @@ class GreedyVerifier(AbstractVerifier):
             "accepted_tokens": accepted_tokens,
             "accepted_count": len(accepted_draft_tokens),
             "rejected_count": rejected_count,
+        }
+
+
+class TensorNGramDrafter(AbstractTensorDrafter):
+    """
+    Tensor-emitting n-gram drafter that supports both depth- and width-drafting.
+
+    Like NGramDrafter it matches the last (n-1) tokens of the prompt against a corpus
+    (with backoff down to a 1-gram), but instead of returning a single Python list it
+    returns a 2D ``torch.long`` tensor of shape ``[S, T]``:
+        - depth-draft:  num_sequences=1            -> one long bet, shape [1, draft_depth]
+        - width-draft:  num_sequences=S (S>1)      -> S short bets,  shape [S, draft_depth]
+
+    Width-drafting collects several *distinct* continuations of the same matched prefix
+    and prefers candidates with different first tokens, which is what hedges against an
+    uncertain branch point. Rows shorter than ``draft_depth`` are right-padded with PAD_ID.
+    """
+
+    def __init__(
+        self,
+        corpus_tokens: List[int],
+        n: int = 3,
+        num_sequences: int = 1,
+        draft_depth: int = 3,
+    ) -> None:
+        self.corpus_tokens = corpus_tokens
+        self.n = n
+        self.num_sequences = num_sequences      # S — number of candidate sequences
+        self.draft_depth = draft_depth          # T — token depth per candidate
+        self.last_n_used: int = 0               # which n-gram size was used in last call
+        self.last_match_corpus_idx: int = -1    # where in corpus the first match was found
+
+    def generate_draft(self, prompt: List[int]) -> torch.Tensor:
+        self.last_n_used = 0
+        self.last_match_corpus_idx = -1
+
+        if not prompt or not self.corpus_tokens:
+            return torch.empty((0, 0), dtype=torch.long)
+
+        candidates = self._collect_candidates(prompt)
+        if not candidates:
+            return torch.empty((0, 0), dtype=torch.long)
+
+        # Right-pad each candidate to draft_depth and stack into a [S, T] tensor.
+        padded = [
+            cand + [PAD_ID] * (self.draft_depth - len(cand))
+            for cand in candidates
+        ]
+        return torch.tensor(padded, dtype=torch.long)
+
+    def _collect_candidates(self, prompt: List[int]) -> List[List[int]]:
+        """
+        Gather up to ``num_sequences`` distinct continuations (each up to ``draft_depth``
+        tokens) for the longest matching prefix, backing off from (n-1)-gram to 1-gram.
+        Within the first n-size that yields any match we keep collecting, preferring
+        continuations whose first token has not been seen yet.
+        """
+        for current_n in range(self.n - 1, 0, -1):
+            if len(prompt) < current_n:
+                continue
+
+            search_prefix = prompt[-current_n:]
+            prefix_len = len(search_prefix)
+
+            candidates: List[List[int]] = []
+            seen_continuations = set()      # dedupe identical continuations
+            seen_first_tokens = set()       # encourage diverse first tokens (branching)
+
+            for i in range(len(self.corpus_tokens) - prefix_len):
+                if self.corpus_tokens[i : i + prefix_len] != search_prefix:
+                    continue
+
+                draft = self.corpus_tokens[
+                    i + prefix_len : i + prefix_len + self.draft_depth
+                ]
+                if not draft:
+                    continue
+
+                key = tuple(draft)
+                if key in seen_continuations:
+                    continue
+                # For width-drafting, skip continuations whose first token we already
+                # have, so the candidate set hedges across different branches first.
+                if self.num_sequences > 1 and draft[0] in seen_first_tokens:
+                    continue
+
+                if self.last_match_corpus_idx == -1:
+                    self.last_n_used = current_n
+                    self.last_match_corpus_idx = i
+
+                seen_continuations.add(key)
+                seen_first_tokens.add(draft[0])
+                candidates.append(draft)
+
+                if len(candidates) >= self.num_sequences:
+                    return candidates
+
+            if candidates:
+                return candidates
+
+        return []
+
+
+class TensorGreedyVerifier(AbstractTensorVerifier):
+    """
+    Greedy verifier for a batch of candidate draft sequences (shape ``[S, T]``).
+
+    Every candidate row is compared token-by-token against the ground-truth sequence,
+    stopping at the first mismatch, PAD_ID, or end of ground truth. The candidate with
+    the longest matching run wins (ties broken by lowest row index); its matched prefix
+    plus one recovery token is accepted, mirroring GreedyVerifier's single-sequence logic.
+    """
+
+    def verify(
+        self,
+        draft_tokens: torch.Tensor,
+        current_prefix: List[int],
+        complete_tokens: List[int],
+    ) -> Dict[str, Any]:
+        prefix_len = len(current_prefix)
+        complete_len = len(complete_tokens)
+
+        best_row = -1
+        best_accepted: List[int] = []
+
+        # Treat an empty draft (no candidates / width 0) as "no draft".
+        if draft_tokens.numel() > 0:
+            for row_idx in range(draft_tokens.shape[0]):
+                row = draft_tokens[row_idx]
+                accepted: List[int] = []
+                for i in range(row.shape[0]):
+                    token = int(row[i])
+                    if token == PAD_ID:
+                        break
+                    gt_index = prefix_len + i
+                    if gt_index < complete_len and token == complete_tokens[gt_index]:
+                        accepted.append(token)
+                    else:
+                        break
+                # First row seeds the winner; later rows only win by a strictly longer
+                # match, so ties keep the lowest row index.
+                if best_row == -1 or len(accepted) > len(best_accepted):
+                    best_accepted = accepted
+                    best_row = row_idx
+
+        accepted_count = len(best_accepted)
+        # Rejected = remaining real (non-PAD) tokens in the winning row after the match.
+        rejected_count = 0
+        if best_row != -1:
+            winner = draft_tokens[best_row]
+            real_len = int((winner != PAD_ID).sum())
+            rejected_count = real_len - accepted_count
+
+        recovery_index = prefix_len + accepted_count
+        accepted_tokens = list(best_accepted)
+        if recovery_index < complete_len:
+            accepted_tokens.append(complete_tokens[recovery_index])
+
+        return {
+            "accepted_tokens": accepted_tokens,
+            "accepted_count": accepted_count,
+            "rejected_count": rejected_count,
+            "chosen_sequence": best_row,
         }
 
 
