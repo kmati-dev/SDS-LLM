@@ -5,7 +5,7 @@ A teammate runs the whole RCA on a *different* language by changing ONLY the
 language code — e.g. ``lo`` (Lao), ``my`` (Burmese), ``ar`` (Arabic),
 ``ru`` (Russian), ``uk`` (Ukrainian). Everything downstream is language-agnostic.
 
-    from src.datasets.wiki import load_articles
+    from specdecode.datasets.wiki import load_articles
     texts = load_articles("lo")            # all Lao articles
     texts = load_articles("ru", max_chars=50_000_000)  # cap huge languages
 """

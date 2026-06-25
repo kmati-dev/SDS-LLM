@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from src.interfaces import AbstractTensorDrafter, AbstractTensorVerifier
-from src.simulator import TensorNGramDrafter, TensorGreedyVerifier, PAD_ID
+from specdecode.interfaces import AbstractTensorDrafter, AbstractTensorVerifier
+from specdecode.simulator import TensorNGramDrafter, TensorGreedyVerifier, PAD_ID
 
 
 # =============================================================================

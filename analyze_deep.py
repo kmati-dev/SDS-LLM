@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from transformers import AutoTokenizer
 
-from src.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
-from src.datasets import get_dataset
+from specdecode.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+from specdecode.datasets import get_dataset
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 DATASETS  = ["squad", "xsum"]

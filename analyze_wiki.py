@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
-from src.datasets.wiki import load_articles
-from src.simulator import (
+from specdecode.datasets.wiki import load_articles
+from specdecode.simulator import (
     NGramIndex,
     IndexedTensorNGramDrafter,
     TensorGreedyVerifier,

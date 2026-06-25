@@ -4,8 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
 
-from src.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
-from src.datasets import get_dataset, REGISTRY
+from specdecode.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+from specdecode.datasets import get_dataset, REGISTRY
 
 
 def load_experiment_config(dataset: str) -> dict:

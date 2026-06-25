@@ -2,7 +2,7 @@ from typing import Any, Optional, Dict, List
 
 import torch
 
-from src.interfaces import (
+from specdecode.interfaces import (
     AbstractDrafter,
     AbstractVerifier,
     AbstractPlayback,

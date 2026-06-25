@@ -3,7 +3,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from transformers import AutoTokenizer
-from src.datasets import get_dataset
+from specdecode.datasets import get_dataset
 
 EXPERIMENTS = ["squad", "samsum", "xsum"]
 COLORS = {"squad": "#3b82f6", "samsum": "#f59e0b", "xsum": "#ef4444"}

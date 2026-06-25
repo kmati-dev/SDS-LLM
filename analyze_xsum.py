@@ -19,8 +19,8 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 from datasets import load_dataset
 
-from src.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
-from src.datasets import get_dataset
+from specdecode.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
+from specdecode.datasets import get_dataset
 
 DATASET          = "xsum"
 ARTIFACTS        = f"experiments/{DATASET}/artifacts"
