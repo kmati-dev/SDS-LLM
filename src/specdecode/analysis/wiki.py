@@ -1,8 +1,8 @@
 """
 Low-Resource Tokenizer RCA via Greedy Speculative Decoding
 ==========================================================
-Run (Lao):   /opt/miniconda3/bin/python3.13 analyze_wiki.py --lang lo
-Other langs: ... --lang my   (Burmese) | --lang ar | --lang ru | --lang uk
+Run (Lao):   /opt/miniconda3/bin/python3.13 scripts/analyze.py --wiki --lang lo
+Other langs: ... --wiki --lang my   (Burmese) | --lang ar | --lang ru | --lang uk
              (a teammate changes ONLY --lang — everything else is language-agnostic)
 
 What it studies — how modern tokenizers (Qwen 3.5 vs Gemma 4) handle a low-resource
@@ -360,8 +360,9 @@ def plot_charts(all_results: Dict, lang: str, out_dir: str):
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-def main():
-    ap = argparse.ArgumentParser(description="Low-resource tokenizer RCA via speculative decoding")
+def main(argv=None, output_root="."):
+    ap = argparse.ArgumentParser(prog="analyze.py --wiki",
+                                 description="Low-resource tokenizer RCA via speculative decoding")
     ap.add_argument("--lang", default="lo", help="Wikipedia language code (lo/my/ar/ru/uk/...)")
     ap.add_argument("--date", default="20231101")
     ap.add_argument("--tokenizers", default="qwen,gemma", help="comma list from: " + ",".join(TOKENIZERS))
@@ -378,11 +379,11 @@ def main():
     ap.add_argument("--neffect-corpus-tokens", type=int, default=1_000_000, dest="neffect_corpus_tokens")
     ap.add_argument("--cap-positions", type=int, default=256, dest="cap_positions")
     ap.add_argument("--frag-sample-chars", type=int, default=200_000, dest="frag_sample_chars")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     args.corpus_sizes = [int(x) for x in args.corpus_sizes_str.split(",")]
     args.depthwidth_budgets = [int(x) for x in args.depthwidth_budgets_str.split(",")]
 
-    out_dir = f"experiments/wiki_{args.lang}"
+    out_dir = os.path.join(output_root, f"experiments/wiki_{args.lang}")
     art_dir = os.path.join(out_dir, "artifacts")
     os.makedirs(art_dir, exist_ok=True)
 
