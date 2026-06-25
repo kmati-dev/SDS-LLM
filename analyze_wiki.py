@@ -308,7 +308,8 @@ def plot_charts(all_results: Dict, lang: str, out_dir: str):
     ax[2].set_ylabel("mean speedup (x)")
     ax[2].legend()
 
-    plt.suptitle(f"Wiki-{lang} Tokenizer RCA — Part 1", fontsize=14, fontweight="bold")
+    plt.suptitle(f"Speculative Decoding on Wiki-{lang} — Part 1 (drafter context: tokenizer setting)",
+                 fontsize=14, fontweight="bold")
     plt.tight_layout()
     p1 = os.path.join(out_dir, f"wiki_{lang}_part1.png")
     plt.savefig(p1, dpi=200); plt.close()
@@ -351,7 +352,7 @@ def plot_charts(all_results: Dict, lang: str, out_dir: str):
                     fontsize=11, fontweight="bold")
     ax[2].set_ylabel("characters per step")
 
-    plt.suptitle(f"Wiki-{lang} Tokenizer RCA — Part 2", fontsize=14, fontweight="bold")
+    plt.suptitle(f"Speculative Decoding on Wiki-{lang} — Part 2", fontsize=14, fontweight="bold")
     plt.tight_layout()
     p2 = os.path.join(out_dir, f"wiki_{lang}_part2.png")
     plt.savefig(p2, dpi=200); plt.close()
