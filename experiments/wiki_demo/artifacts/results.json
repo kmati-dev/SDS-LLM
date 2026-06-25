@@ -1,0 +1,65 @@
+{
+  "dataset": "wiki_demo",
+  "sample_index": 0,
+  "tokenizer": "Qwen/Qwen2.5-0.5B-Instruct",
+  "n_gram_size": 3,
+  "corpus_token_count": 305,
+  "target_token_count": 109,
+  "baseline_steps": 108,
+  "sweep": [
+    {
+      "k": 1,
+      "speedup": 1.77,
+      "avg_accepted": 0.77,
+      "accepted_tokens": 47,
+      "rejected_tokens": 14,
+      "steps": 61,
+      "acceptance_rate": 0.7705
+    },
+    {
+      "k": 2,
+      "speedup": 2.2,
+      "avg_accepted": 1.2,
+      "accepted_tokens": 59,
+      "rejected_tokens": 39,
+      "steps": 49,
+      "acceptance_rate": 0.602
+    },
+    {
+      "k": 3,
+      "speedup": 2.57,
+      "avg_accepted": 1.57,
+      "accepted_tokens": 66,
+      "rejected_tokens": 60,
+      "steps": 42,
+      "acceptance_rate": 0.5238
+    },
+    {
+      "k": 4,
+      "speedup": 2.77,
+      "avg_accepted": 1.77,
+      "accepted_tokens": 69,
+      "rejected_tokens": 87,
+      "steps": 39,
+      "acceptance_rate": 0.4423
+    },
+    {
+      "k": 5,
+      "speedup": 3.09,
+      "avg_accepted": 2.09,
+      "accepted_tokens": 73,
+      "rejected_tokens": 102,
+      "steps": 35,
+      "acceptance_rate": 0.4171
+    },
+    {
+      "k": 6,
+      "speedup": 3.18,
+      "avg_accepted": 2.18,
+      "accepted_tokens": 74,
+      "rejected_tokens": 130,
+      "steps": 34,
+      "acceptance_rate": 0.3627
+    }
+  ]
+}

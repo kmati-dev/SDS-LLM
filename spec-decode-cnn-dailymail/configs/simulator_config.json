@@ -1,6 +1,0 @@
-{
-  "tokenizer_name": "Qwen/Qwen2.5-0.5B-Instruct",
-  "n_gram_size": 3,
-  "max_draft": 6,
-  "artifacts_dir": "artifacts"
-}
