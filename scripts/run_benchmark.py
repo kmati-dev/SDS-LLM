@@ -7,15 +7,19 @@ from transformers import AutoTokenizer
 from specdecode.simulator import NGramDrafter, GreedyVerifier, PlaybackMetrics, SpeculativePlayback
 from specdecode.datasets import get_dataset, REGISTRY
 
+# This script lives in <repo>/scripts/, so anchor experiments/ and configs/ to the
+# repo root — the benchmark then works regardless of the current working directory.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def load_experiment_config(dataset: str) -> dict:
     """Load config from experiments/<dataset>/config.json, fall back to configs/simulator_config.json."""
-    experiment_config = os.path.join("experiments", dataset, "config.json")
+    experiment_config = os.path.join(PROJECT_ROOT, "experiments", dataset, "config.json")
     if os.path.exists(experiment_config):
         with open(experiment_config, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    fallback = os.path.join(os.path.dirname(__file__), "configs", "simulator_config.json")
+    fallback = os.path.join(PROJECT_ROOT, "configs", "simulator_config.json")
     if os.path.exists(fallback):
         with open(fallback, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -24,7 +28,7 @@ def load_experiment_config(dataset: str) -> dict:
 
 
 def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft: int, sample_index: int):
-    artifacts_dir = os.path.join("experiments", dataset, "artifacts")
+    artifacts_dir = os.path.join(PROJECT_ROOT, "experiments", dataset, "artifacts")
     os.makedirs(artifacts_dir, exist_ok=True)
 
     print("=" * 70)
