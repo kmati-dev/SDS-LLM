@@ -8,13 +8,19 @@ version = "0.1.0"
 description = "Speculative Decoding Simulator (Greedy Speculative Decoding)"
 readme = "README.md"
 requires-python = ">=3.8"
+authors = [{ name = "faith-cr" }]
+keywords = ["speculative-decoding", "tokenizer", "nlp", "simulator"]
 dependencies = [
     "torch>=2.0.0",
     "transformers>=4.40.0",
     "datasets>=2.19.0",
     "matplotlib>=3.8.0",
-    "pytest>=8.0.0"
+    "numpy>=1.24.0",
+    "tqdm>=4.66.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,6 +9,11 @@ __pycache__/
 .coverage
 htmlcov/
 
+# Build / packaging metadata
+*.egg-info/
+build/
+dist/
+
 # Local/IDE configs
 .vscode/
 .idea/
