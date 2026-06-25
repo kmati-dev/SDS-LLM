@@ -97,7 +97,7 @@ def cross_dataset_summary(output_root: str = ".", datasets=None) -> None:
     plt.suptitle("Speculative Decoding — Cross-Dataset Root Cause Analysis",
                  fontsize=16, fontweight="bold")
     plt.tight_layout()
-    out_dir = os.path.join(output_root, "artifacts")
+    out_dir = os.path.join(output_root, "experiments", "_summary", "artifacts")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "rca_combined.png")
     plt.savefig(out_path, dpi=300)
