@@ -21,3 +21,9 @@ env/
 
 # Artifacts - we track simulator configs but ignore large generated images if requested
 # artifacts/*.png
+
+# Large generated analysis checkpoints (regenerate with scripts/analyze.py).
+# wiki_lo's is a small (~33KB) presentation deliverable, so it stays tracked.
+experiments/**/full_analysis.json
+experiments/**/multisample_results.json
+!experiments/wiki_lo/full_analysis.json
