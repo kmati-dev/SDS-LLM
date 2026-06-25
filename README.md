@@ -1,81 +1,84 @@
-# Speculate Decoding Simulator (Greedy Speculative Decoding)
+# Speculative Decoding Simulator (Greedy)
+
+ตัว**จำลอง** greedy speculative decoding ที่ **ไม่รันโมเดลจริง** — ใช้ ground-truth tokens แทน
+target model เพื่อวัด speedup เร็ว ๆ บน CPU แล้วใช้เป็น "เครื่องมือวัด" ว่าภาษา/dataset/tokenizer
+แบบไหนทำให้ n-gram drafter เดาถูกบ่อยแค่ไหน
 
 ---
 
-## 📁 โครงสร้างโปรเจกต์ (Project Structure)
-
-โปรเจกต์นี้ได้รับการจัดระเบียบตามแนวทางวิศวกรรมซอฟต์แวร์ (Software Engineering Guidelines) เพื่อความง่ายในการขยายระบบ ทดสอบ และใช้งาน:
+## โครงสร้างโปรเจกต์
 
 ```text
-├── artifacts/              # สำหรับเก็บผลลัพธ์การทดสอบ (เช่น กราฟ speedup_benchmark.png)
-├── configs/                # ไฟล์ตั้งค่าสำหรับระบบจำลอง
-│   └── simulator_config.json
-├── docs/                   # เอกสารอธิบายรายละเอียดสถาปัตยกรรมและการคำนวณ
-│   └── architecture.md
-├── src/                    # ซอร์สโค้ดหลักของโปรเจกต์
-│   ├── interfaces.py       # สัญญาข้อตกลง (Abstract Interface Contracts)
-│   └── simulator.py        # ส่วนคลาสจริง (Concrete Implementations)
-├── tests/                  # สวีทการทดสอบระบบ (Automated Tests)
-│   └── test_interfaces.py
-├── .gitignore              # การละเว้นไฟล์ขยะใน Git
-├── pyproject.toml          # กำหนด Metadata และการตั้งค่าของ pytest
-├── README.md               # เอกสารแนะนำการใช้งานภาษาไทย (ไฟล์นี้)
-└── run.py                  # ตัวรันการทำงานและสวีปผลประสิทธิภาพหลัก (Unified Entry Point)
+├── pyproject.toml              # package + pytest config (installable: pip install -e .)
+├── README.md
+├── configs/
+│   └── simulator_config.json   # ค่า default ของ run_benchmark
+├── src/specdecode/             # ── ตัว package หลัก ──
+│   ├── interfaces.py           # Abstract contracts (list-based + tensor-based)
+│   ├── simulator.py            # Drafter / Verifier / Playback / Metrics / NGramIndex
+│   ├── datasets/               # dataset loaders + REGISTRY (squad, xsum, samsum, cnn_dailymail, wiki[_demo])
+│   └── analysis/               # RCA engine: DatasetAnalyzer + per-dataset hooks + wiki + summary
+├── scripts/                    # ── entry points (CLI บาง ๆ) ──
+│   ├── run_benchmark.py        # benchmark K-sweep ต่อ dataset
+│   └── analyze.py              # RCA แบบรวม: --dataset / --summary / --wiki
+├── tests/                      # pytest (interfaces + tensor interfaces)
+├── docs/
+│   ├── architecture.md         # ทฤษฎี + ดีไซน์
+│   ├── planning/               # บันทึกการวางแผน (tensor drafter, wiki_lao)
+│   └── results/                # writeup ผลลัพธ์สำหรับนำเสนอ (deliverable)
+└── experiments/                # ผลลัพธ์ต่อ dataset (PNG track, full_analysis.json ใหญ่ถูก gitignore)
 ```
 
 ---
 
-## 📌 สรุปรายการ Checklist และการจับคู่ไฟล์
+## การติดตั้ง
 
-| รายการ Checklist | คลาส / ฟังก์ชัน ที่นำไปใช้จริง | ชื่อไฟล์หลัก | รายละเอียดเบื้องต้น |
-| :--- | :--- | :--- | :--- |
-| **Abstract class ของ Playback** | `AbstractPlayback` | [src/interfaces.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/interfaces.py) | กำหนดอินเทอร์เฟซตัวควบคุมหลัก รองรับ Dependency Injection และการรันแบบทีละโทเค็น |
-| **Abstract class ของ Drafter** | `AbstractDrafter` | [src/interfaces.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/interfaces.py) | อินเทอร์เฟซของโมเดลผู้ร่างเพื่อเดาโทเค็นล่วงหน้า |
-| **Abstract class ของ Verifier** | `AbstractVerifier` | [src/interfaces.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/interfaces.py) | อินเทอร์เฟซโมเดลผู้ตรวจแบบ Greedy คืนค่า Accepted และ Recovery Token |
-| **Implementation n-gram decoding**| `NGramDrafter` | [src/simulator.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/simulator.py) | คลาสโมเดลผู้ร่างจริงด้วยเทคนิคประวัติ N-gram และมีระบบถอยกลับ (Backoff) |
-| **Implementation verifier** | `GreedyVerifier` | [src/simulator.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/simulator.py) | คลาสผู้ตรวจจริง เปรียบเทียบเรียงตัวจนเจอมิสแมตช์ตัวแรกแล้วดึง Recovery Token |
-| **Implementation metrics** | `PlaybackMetrics` | [src/simulator.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/simulator.py) | คลาสเก็บสถิติคำนวณ ความเร็ว (Speedup), ยอดสูงสุดยอมรับ และค่าเฉลี่ยต่อขั้นตอน |
-| **Implementation ของ Playback** | `SpeculativePlayback` | [src/simulator.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/simulator.py) | ระบบรันจำลองการทับศัพท์/ถอดโทเค็นจริงโดยดึงข้อมูลจาก Tokenizer แบบ Duck Typing |
-| **Test case** | pytest unit tests | [tests/test_interfaces.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/tests/test_interfaces.py) | รวมเคสทดสอบ 12 เคสครอบคลุมทั้ง Abstract, Concrete, Metrics และ E2E Playback |
-
----
-
-## 🧠 ลอจิกการทำงานอย่างละเอียด (Detailed Logic)
-
-คุณสามารถศึกษาลอจิกการทำงานเชิงทฤษฎีสูตรทางคณิตศาสตร์ และคลาสไดอะแกรมอย่างเป็นทางการได้ที่ **[docs/architecture.md](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/docs/architecture.md)** 
-
-สรุปกระบวนการสำคัญ:
-1. **Abstract Interfaces (`src/interfaces.py`)**: กำหนดสัญญาร่วม ป้องกันการสร้างออบเจกต์ (Instantiation) โดยตรง
-2. **N-Gram Drafter (`src/simulator.py`)**: คาดเดาคำถัดไปตามจำนวนร่างที่ตั้งไว้ ($K$) พร้อมระบบ **Backoff Mechanism** ถอยขนาด N-gram ลงมาเรื่อย ๆ เมื่อไม่พบคู่แมตช์ในประวัติ
-3. **Greedy Verifier (`src/simulator.py`)**: ตรวจสอบคำร่างเปรียบเทียบกับคำจริงทีละคำ หากพบคำไม่ตรง จะปฏิเสธคำดราฟต์ที่เหลือทั้งหมด และแนบ **Recovery Token** ตัวถัดไปของคำเฉลยกลับคืนเพื่อเริ่มรอบถัดไปทันที
-4. **Metrics Tracker (`src/simulator.py`)**: คำนวณอัตราเร่งความเร็ว (**Speedup Ratio**) เปรียบเทียบผลระหว่างการเรียกใช้โมเดลแบบปกติและแบบ Speculative
-5. **Playback Controller (`src/simulator.py`)**: ดูแลลูปใหญ่ของการจำลองการทับศัพท์ผ่านการทำ Dependency Injection ของ Tokenizer แบบ Duck Typing
-
----
-
-## 📊 ผลลัพธ์และบทวิเคราะห์ทางเทคนิค (Benchmark & Technical Analysis)
-
-เมื่อรันไฟล์เดโมสวีป `run.py` บนระบบจำลองจะพบข้อมูลสถิติที่สำคัญดังนี้:
-
-### 1. แหล่งที่มาของข้อมูลนำเข้า
-* **คลังข้อมูลต้นแบบของ Drafter (Corpus Tokens)**: ข้อความบทความเชิงเทคนิคภาษาอังกฤษจำลองสถานการณ์ "logs ข้อความในอดีต" (Retrieval Database)
-* **ข้อความเป้าหมายรันจำลอง (Target Tokens)**: ข้อความสั้นที่จำลองสถานการณ์จริงที่ LLM กำลังสร้างคำใหม่ (Target output sequence)
-
-## 🚀 วิธีการทดสอบและสั่งใช้งานจริง
-
-### 1. วิธีรันทดสอบ Unit Tests (ผ่าน pytest)
-คุณสามารถรันการทดสอบ Unit Tests ทั้ง 12 เคสครอบคลุมทุกคลาสและเมธอดได้ง่าย ๆ จากไดเรกทอรีของโปรเจกต์:
 ```bash
-python3 -m pytest tests/test_interfaces.py -v
+pip install -e .          # ติดตั้ง package `specdecode` แบบ editable (แนะนำ)
+# หรือไม่ติดตั้ง แล้วชี้ PYTHONPATH=src เวลารัน script
 ```
 
-### 2. วิธีรันโปรแกรมประเมินผลประสิทธิภาพ (Centralized Sweep Benchmark)
-รันไฟล์ Entry Point หลัก `run.py` เพื่อสวีปหาความเร็วและพล็อตแผนภูมิแบบพรีเมียมได้ผ่านคำสั่ง:
+แล้ว `import specdecode` หรือ `from specdecode.simulator import NGramDrafter` ใช้ได้ทุกที่
+
+---
+
+## การใช้งาน
+
+### 1) Unit tests
 ```bash
-# รันค่าเริ่มต้น (จะโหลดพารามิเตอร์อัตโนมัติจาก configs/simulator_config.json)
-python3 run.py
-
-# หรือกำหนดพารามิเตอร์แบบกำหนดเอง (Custom Overrides)
-python3 run.py --tokenizer gpt2 --n 3 --max_draft 5 --artifacts_dir artifacts
+python -m pytest tests/ -v
 ```
-หลังจากประมวลผลเสร็จสิ้น ระบบจะอัปเดตไฟล์สถิติสรุปเป็นภาพแผนภูมิไปที่โฟลเดอร์ผลลัพธ์ [artifacts/speedup_benchmark.png](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/artifacts/speedup_benchmark.png) โดยอัตโนมัติ
+
+### 2) Benchmark (K-sweep) ต่อ dataset
+```bash
+python scripts/run_benchmark.py --dataset wiki_demo
+python scripts/run_benchmark.py --dataset squad --tokenizer gpt2 --n 3 --max_draft 5
+```
+ผลออกที่ `experiments/<dataset>/artifacts/` (results.json + speedup_benchmark.png)
+
+### 3) Root-Cause Analysis (รวมเป็น CLI เดียว)
+```bash
+python scripts/analyze.py --dataset squad          # RCA เต็ม dataset เดียว (squad/xsum/samsum/cnn_dailymail)
+python scripts/analyze.py --dataset xsum --limit 50 # quick run บน 50 sample แรก
+python scripts/analyze.py --summary                 # ตารางเทียบข้าม dataset + กราฟรวม
+python scripts/analyze.py --wiki --lang lo          # งานศึกษา tokenizer ภาษา low-resource
+```
+
+> ถ้าไม่ได้ `pip install -e .` ให้นำหน้าด้วย `PYTHONPATH=src` เช่น
+> `PYTHONPATH=src python scripts/analyze.py --dataset squad`
+
+---
+
+## คอมโพเนนต์หลัก (ใน `src/specdecode/`)
+
+| คอมโพเนนต์ | คลาส | ไฟล์ |
+| :-- | :-- | :-- |
+| Abstract contracts | `AbstractDrafter`, `AbstractVerifier`, `AbstractPlayback` (+ tensor variants) | [src/specdecode/interfaces.py](src/specdecode/interfaces.py) |
+| N-gram drafter (+ backoff) | `NGramDrafter`, `TensorNGramDrafter`, `IndexedTensorNGramDrafter` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
+| Greedy verifier | `GreedyVerifier`, `TensorGreedyVerifier` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
+| Playback loop | `SpeculativePlayback`, `TensorSpeculativePlayback` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
+| Metrics + index | `PlaybackMetrics`, `NGramIndex` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
+| RCA engine | `DatasetAnalyzer` + subclass ต่อ dataset | [src/specdecode/analysis/](src/specdecode/analysis/) |
+
+รายละเอียดทฤษฎี (speculative decoding heuristic, สูตร speedup, dependency injection) อยู่ที่
+[docs/architecture.md](docs/architecture.md)

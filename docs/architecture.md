@@ -23,7 +23,7 @@ If the verifier accepts $i$ draft tokens, we obtain $i+1$ tokens (including one 
 
 ## 2. Core Simulator Components
 
-The architecture follows a strict decoupled contract utilizing **Dependency Injection** (defined in [interfaces.py](file:///Users/nantaporn/Documents/indiv-llm/spec-decode-greedy/src/interfaces.py)):
+The architecture follows a strict decoupled contract utilizing **Dependency Injection** (defined in [interfaces.py](../src/specdecode/interfaces.py)):
 
 ```
                        ┌─────────────────────────┐
@@ -37,12 +37,12 @@ The architecture follows a strict decoupled contract utilizing **Dependency Inje
 └──────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-### 1. Abstract Interfaces (`src/interfaces.py`)
+### 1. Abstract Interfaces (`src/specdecode/interfaces.py`)
 - **`AbstractDrafter`:** Dictates the speculative generation contract. Requires implementing `generate_draft(prompt: List[int]) -> List[int]`.
 - **`AbstractVerifier`:** Dictates the verification loop. Requires implementing `verify(draft_tokens, current_prefix, complete_tokens) -> Dict[str, Any]`.
 - **`AbstractPlayback`:** Declares the execution flow. Coordinates the main loop via `run_playback(input_data: str, use_drafter: bool) -> str`.
 
-### 2. N-Gram Drafter (`NGramDrafter` in `src/simulator.py`)
+### 2. N-Gram Drafter (`NGramDrafter` in `src/specdecode/simulator.py`)
 To avoid running a second neural network locally, the simulator implements an **N-Gram Drafter** that serves as a highly deterministic mock for a draft model:
 * **Lookup database:** Stores a provided text corpus (`corpus_tokens`).
 * **Backoff Heuristic:**
@@ -51,14 +51,14 @@ To avoid running a second neural network locally, the simulator implements an **
   3. If no match is found, it backs off to search for an $(N-2)$-gram, repeating this down to a $1$-gram context.
   4. If absolutely no matches exist, it returns an empty speculation list `[]`.
 
-### 3. Greedy Verifier (`GreedyVerifier` in `src/simulator.py`)
+### 3. Greedy Verifier (`GreedyVerifier` in `src/specdecode/simulator.py`)
 Compares speculations against the ground-truth target sequence (`complete_tokens`) sequentially:
 1. Iterates from index $i = 0$ to $K-1$.
 2. If `draft_tokens[i] == complete_tokens[prefix_len + i]`, the token is **Accepted**.
 3. Upon the first mismatch, all subsequent speculated tokens are **Rejected** immediately, breaking the loop.
 4. **Recovery Token:** Appends the true ground-truth token at the mismatch point, guaranteeing forward progress.
 
-### 4. Metrics Tracker (`PlaybackMetrics` in `src/simulator.py`)
+### 4. Metrics Tracker (`PlaybackMetrics` in `src/specdecode/simulator.py`)
 Collects and tracks the simulation's performance:
 * **Accepted Tokens:** Number of speculations verified and accepted.
 * **Rejected Tokens:** Number of speculations rejected.
