@@ -114,6 +114,10 @@ class TensorSpeculativePlayback(AbstractPlayback):
     ) -> None:
         super().__init__(tokenizer, drafter, verifier, metrics)  # type: ignore[arg-type]
         self.metrics: Optional[PlaybackMetrics] = metrics
+        # Typed references that shadow the parent's AbstractDrafter/Verifier attributes
+        # so pyright can verify the tensor-specific call signatures below.
+        self._tensor_drafter: AbstractTensorDrafter = drafter
+        self._tensor_verifier: AbstractTensorVerifier = verifier
 
     def run_playback(self, input_data: str, use_drafter: bool = True) -> str:
         complete_tokens = self.tokenizer.encode(input_data)
@@ -134,10 +138,10 @@ class TensorSpeculativePlayback(AbstractPlayback):
         while len(current_prefix) < len(complete_tokens):
             if use_drafter and self.drafter is not None:
                 prefix_snapshot = list(current_prefix)
-                draft_tokens: torch.Tensor = self.drafter.generate_draft(current_prefix)
-                n_used = getattr(self.drafter, "last_n_used", 0)
+                draft_tokens: torch.Tensor = self._tensor_drafter.generate_draft(current_prefix)
+                n_used = getattr(self._tensor_drafter, "last_n_used", 0)
 
-                result = self.verifier.verify(draft_tokens, current_prefix, complete_tokens)
+                result = self._tensor_verifier.verify(draft_tokens, current_prefix, complete_tokens)
                 accepted_tokens = result["accepted_tokens"]
                 accepted_count = result["accepted_count"]
                 rejected_count = result["rejected_count"]
