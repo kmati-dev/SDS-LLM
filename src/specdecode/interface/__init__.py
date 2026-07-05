@@ -1,12 +1,8 @@
 """
-Legacy shim — preserved for backward compatibility.
+specdecode.interface — abstract contracts for drafter, verifier, and playback.
 
-All abstract base classes have been moved to ``specdecode.interface.*``.
-This module re-exports them so that existing imports of the form::
-
-    from specdecode.interfaces import AbstractDrafter
-
-continue to work unchanged.
+Public re-exports mirror the legacy ``specdecode.interfaces`` flat module so that
+any code importing from this sub-package gets the same symbols.
 """
 from specdecode.interface.abstractDrafter import AbstractDrafter
 from specdecode.interface.abstractVerifier import AbstractVerifier
