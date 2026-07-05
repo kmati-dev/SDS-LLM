@@ -4,6 +4,8 @@
 target model เพื่อวัด speedup เร็ว ๆ บน CPU แล้วใช้เป็น "เครื่องมือวัด" ว่าภาษา/dataset/tokenizer
 แบบไหนทำให้ n-gram drafter เดาถูกบ่อยแค่ไหน
 
+Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ---
 
 ## โครงสร้างโปรเจกต์
