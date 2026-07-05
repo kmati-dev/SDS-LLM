@@ -1,86 +1,89 @@
 # Speculative Decoding Simulator (Greedy)
 
-ตัว**จำลอง** greedy speculative decoding ที่ **ไม่รันโมเดลจริง** — ใช้ ground-truth tokens แทน
-target model เพื่อวัด speedup เร็ว ๆ บน CPU แล้วใช้เป็น "เครื่องมือวัด" ว่าภาษา/dataset/tokenizer
-แบบไหนทำให้ n-gram drafter เดาถูกบ่อยแค่ไหน
+A **simulator** for greedy speculative decoding that **runs no real models** — it uses ground-truth tokens in place of the target model to measure speedup quickly on CPU. Use it to benchmark how well an n-gram drafter performs across different languages, datasets, and tokenizers.
 
 Want to contribute? See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-## โครงสร้างโปรเจกต์
+## Project structure
 
 ```text
-├── pyproject.toml              # package + pytest config (installable: pip install -e .)
+├── pyproject.toml              # package + dev dependencies (pip install -e .[dev])
 ├── README.md
+├── CONTRIBUTING.md
 ├── configs/
-│   └── simulator_config.json   # ค่า default ของ run_benchmark
-├── src/specdecode/             # ── ตัว package หลัก ──
-│   ├── interfaces.py           # Abstract contracts (list-based + tensor-based)
-│   ├── simulator.py            # Drafter / Verifier / Playback / Metrics / NGramIndex
-│   ├── datasets/               # dataset loaders + REGISTRY (squad, xsum, samsum, cnn_dailymail, wiki[_demo])
+│   └── simulator_config.json   # default config for run_benchmark
+├── src/specdecode/             # ── core package ──
+│   ├── interface/              # Abstract base classes (drafter, verifier, playback + tensor variants)
+│   ├── simulator/              # Concrete implementations
+│   │   ├── drafter/            # NGramDrafter, TensorNGramDrafter, IndexedTensorNGramDrafter
+│   │   ├── verifier/           # GreedyVerifier, TensorGreedyVerifier
+│   │   ├── metrics/            # PlaybackMetrics
+│   │   └── playback/           # SpeculativePlayback, TensorSpeculativePlayback
+│   ├── datasets/               # Dataset loaders + REGISTRY (squad, xsum, samsum, cnn_dailymail, wiki[_demo])
 │   └── analysis/               # RCA engine: DatasetAnalyzer + per-dataset hooks + wiki + summary
-├── scripts/                    # ── entry points (CLI บาง ๆ) ──
-│   ├── run_benchmark.py        # benchmark K-sweep ต่อ dataset
-│   └── analyze.py              # RCA แบบรวม: --dataset / --summary / --wiki
-├── tests/                      # pytest (interfaces + tensor interfaces)
+├── scripts/                    # ── entry points ──
+│   ├── run_benchmark.py        # K-sweep benchmark per dataset
+│   ├── analyze.py              # RCA: --dataset / --summary / --wiki
+│   └── new_drafter.py          # scaffold a new drafter class
+├── tests/                      # pytest suite
 ├── docs/
-│   ├── architecture.md         # ทฤษฎี + ดีไซน์
-│   ├── planning/               # บันทึกการวางแผน (tensor drafter, wiki_lao)
-│   └── results/                # writeup ผลลัพธ์สำหรับนำเสนอ (deliverable)
-└── experiments/                # ผลลัพธ์ต่อ dataset (PNG track, full_analysis.json ใหญ่ถูก gitignore)
+│   ├── architecture.md         # theory + design notes
+│   ├── planning/               # planning docs
+│   └── results/                # result writeups (deliverables)
+└── experiments/                # per-dataset outputs (PNGs; large JSONs are gitignored)
 ```
 
 ---
 
-## การติดตั้ง
+## Installation
 
 ```bash
-pip install -e .          # ติดตั้ง package `specdecode` แบบ editable (แนะนำ)
-# หรือไม่ติดตั้ง แล้วชี้ PYTHONPATH=src เวลารัน script
+pip install -e .          # install specdecode package in editable mode (recommended)
+# or without installing: prefix commands with PYTHONPATH=src
 ```
 
-แล้ว `import specdecode` หรือ `from specdecode.simulator import NGramDrafter` ใช้ได้ทุกที่
+Then `import specdecode` or `from specdecode.simulator import NGramDrafter` works anywhere.
 
 ---
 
-## การใช้งาน
+## Usage
 
 ### 1) Unit tests
 ```bash
 python -m pytest tests/ -v
 ```
 
-### 2) Benchmark (K-sweep) ต่อ dataset
+### 2) Benchmark (K-sweep) per dataset
 ```bash
 python scripts/run_benchmark.py --dataset wiki_demo
 python scripts/run_benchmark.py --dataset squad --tokenizer gpt2 --n 3 --max_draft 5
 ```
-ผลออกที่ `experiments/<dataset>/artifacts/` (results.json + speedup_benchmark.png)
+Output goes to `experiments/<dataset>/artifacts/` (results.json + speedup_benchmark.png)
 
-### 3) Root-Cause Analysis (รวมเป็น CLI เดียว)
+### 3) Root-cause analysis
 ```bash
-python scripts/analyze.py --dataset squad          # RCA เต็ม dataset เดียว (squad/xsum/samsum/cnn_dailymail)
-python scripts/analyze.py --dataset xsum --limit 50 # quick run บน 50 sample แรก
-python scripts/analyze.py --summary                 # ตารางเทียบข้าม dataset + กราฟรวม
-python scripts/analyze.py --wiki --lang lo          # งานศึกษา tokenizer ภาษา low-resource
+python scripts/analyze.py --dataset squad           # full RCA for one dataset (squad/xsum/samsum/cnn_dailymail)
+python scripts/analyze.py --dataset xsum --limit 50 # quick run on first 50 samples
+python scripts/analyze.py --summary                 # cross-dataset comparison table + combined charts
+python scripts/analyze.py --wiki --lang lo          # low-resource tokenizer study
 ```
 
-> ถ้าไม่ได้ `pip install -e .` ให้นำหน้าด้วย `PYTHONPATH=src` เช่น
+> Without `pip install -e .`, prefix with `PYTHONPATH=src`:
 > `PYTHONPATH=src python scripts/analyze.py --dataset squad`
 
 ---
 
-## คอมโพเนนต์หลัก (ใน `src/specdecode/`)
+## Key components (`src/specdecode/`)
 
-| คอมโพเนนต์ | คลาส | ไฟล์ |
+| Component | Classes | Location |
 | :-- | :-- | :-- |
-| Abstract contracts | `AbstractDrafter`, `AbstractVerifier`, `AbstractPlayback` (+ tensor variants) | [src/specdecode/interfaces.py](src/specdecode/interfaces.py) |
-| N-gram drafter (+ backoff) | `NGramDrafter`, `TensorNGramDrafter`, `IndexedTensorNGramDrafter` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
-| Greedy verifier | `GreedyVerifier`, `TensorGreedyVerifier` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
-| Playback loop | `SpeculativePlayback`, `TensorSpeculativePlayback` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
-| Metrics + index | `PlaybackMetrics`, `NGramIndex` | [src/specdecode/simulator.py](src/specdecode/simulator.py) |
-| RCA engine | `DatasetAnalyzer` + subclass ต่อ dataset | [src/specdecode/analysis/](src/specdecode/analysis/) |
+| Abstract contracts | `AbstractDrafter`, `AbstractVerifier`, `AbstractPlayback` (+ tensor variants) | [src/specdecode/interface/](src/specdecode/interface/) |
+| N-gram drafter | `NGramDrafter`, `TensorNGramDrafter`, `IndexedTensorNGramDrafter` | [src/specdecode/simulator/drafter/](src/specdecode/simulator/drafter/) |
+| Greedy verifier | `GreedyVerifier`, `TensorGreedyVerifier` | [src/specdecode/simulator/verifier/](src/specdecode/simulator/verifier/) |
+| Playback loop | `SpeculativePlayback`, `TensorSpeculativePlayback` | [src/specdecode/simulator/playback/](src/specdecode/simulator/playback/) |
+| Metrics + index | `PlaybackMetrics`, `NGramIndex` | [src/specdecode/simulator/metrics/](src/specdecode/simulator/metrics/) |
+| RCA engine | `DatasetAnalyzer` + per-dataset subclasses | [src/specdecode/analysis/](src/specdecode/analysis/) |
 
-รายละเอียดทฤษฎี (speculative decoding heuristic, สูตร speedup, dependency injection) อยู่ที่
-[docs/architecture.md](docs/architecture.md)
+Theory, speedup formula, and dependency injection design: [docs/architecture.md](docs/architecture.md)
