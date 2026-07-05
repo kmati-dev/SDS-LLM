@@ -1,12 +1,8 @@
 """
-Legacy shim — preserved for backward compatibility.
+specdecode.simulator — concrete implementations package.
 
-All concrete implementations have been moved to ``specdecode.simulator.*``.
-This module re-exports them so that existing imports of the form::
-
-    from specdecode.simulator import NGramDrafter, GreedyVerifier, ...
-
-continue to work unchanged.
+Re-exports all public symbols so that ``from specdecode.simulator import X``
+continues to work.
 """
 from specdecode.simulator.drafter.nGramDrafter import NGramDrafter
 from specdecode.simulator.drafter.tensorNGramDrafter import (
