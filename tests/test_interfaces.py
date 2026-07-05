@@ -253,6 +253,28 @@ def test_ngram_drafter_draft_size_exceeds_remaining_corpus():
     assert len(result) <= 2
 
 
+def test_ngram_propose_corpus_match():
+    """
+    Correctness baseline: corpus=[3,4,2,5], draft=[3] should propose [4].
+    The 1-gram [3] is found at index 0; the next token is 4.
+    """
+    corpus = [3, 4, 2, 5]
+    drafter = NGramDrafter(corpus_tokens=corpus, n=2, draft_size=1)
+    result = drafter.generate_draft([3])
+    assert result == [4], f"Expected [4], got {result}"
+
+
+def test_ngram_propose_no_corpus_match():
+    """
+    Correctness baseline: corpus=[3,4,2,5], draft=[10] should propose [].
+    Token 10 never appears in the corpus, so no n-gram can be matched.
+    """
+    corpus = [3, 4, 2, 5]
+    drafter = NGramDrafter(corpus_tokens=corpus, n=2, draft_size=1)
+    result = drafter.generate_draft([10])
+    assert result == [], f"Expected [], got {result}"
+
+
 # =============================================================================
 # 7. Edge Cases for GreedyVerifier
 # =============================================================================
