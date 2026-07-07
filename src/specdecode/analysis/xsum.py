@@ -32,7 +32,7 @@ class XsumAnalyzer(DatasetAnalyzer):
             return
         first_text = tokenizer.decode([tt[0]]).strip()
         print(f"  First summary token: '{first_text}'  |  in corpus: {tt[0] in corpus_set}")
-        print(f"  → if absent, step 1 is always a rejection (full_reject / no_draft).")
+        print("  → if absent, step 1 is always a rejection (full_reject / no_draft).")
         novel = sum(1 for t in tt if t not in corpus_set)
         print(f"  Token novelty: {novel}/{len(tt)} summary tokens are not in the article.")
 
