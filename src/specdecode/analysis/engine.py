@@ -182,7 +182,7 @@ class DatasetAnalyzer:
         print("\n" + "=" * 65)
         print(f"{self.title or self.name} — ROOT CAUSE ANALYSIS  (deep dive — sample #0)")
         print("=" * 65)
-        print(f"\n[OVERVIEW]")
+        print("\n[OVERVIEW]")
         print(f"  Corpus: {len(ct)} tokens  |  Target: {len(tt)} tokens  "
               f"|  {self.alignment_label}: {self.alignment_metric(ct, tt):.1%}")
         self.deepdive(tokenizer, ct, tt)
@@ -235,7 +235,7 @@ class DatasetAnalyzer:
             print(f"  n={nk}: mean_speedup={s:.3f}x")
         findings = self.key_findings(data)
         if findings:
-            print(f"\n[KEY FINDINGS]")
+            print("\n[KEY FINDINGS]")
             for i, line in enumerate(findings, 1):
                 print(f"  {i}. {line}")
 

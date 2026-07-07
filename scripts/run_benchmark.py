@@ -27,14 +27,18 @@ def load_experiment_config(dataset: str) -> dict:
     return {}
 
 
-def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft: int, sample_index: int):
+def run_benchmark(
+    dataset: str, tokenizer_name: str, n_gram_size: int, max_draft: int, sample_index: int
+):
     artifacts_dir = os.path.join(PROJECT_ROOT, "experiments", dataset, "artifacts")
     os.makedirs(artifacts_dir, exist_ok=True)
 
     print("=" * 70)
     print(f"Speculative Decoding Simulator — dataset: {dataset}")
     print(f"Tokenizer:   {tokenizer_name}")
-    print(f"N-gram Size: {n_gram_size}-gram  |  Max Draft: K={max_draft}  |  Sample: #{sample_index}")
+    print(
+        f"N-gram Size: {n_gram_size}-gram  |  Max Draft: K={max_draft}  |  Sample: #{sample_index}"
+    )
     print(f"Artifacts:   {artifacts_dir}")
     print("=" * 70)
 
@@ -82,19 +86,23 @@ def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft
         summary = metrics.get_summary()
 
         total_drafted = summary["accepted_tokens"] + summary["rejected_tokens"]
-        acceptance_rate = round(summary["accepted_tokens"] / total_drafted, 4) if total_drafted > 0 else 0.0
+        acceptance_rate = (
+            round(summary["accepted_tokens"] / total_drafted, 4) if total_drafted > 0 else 0.0
+        )
 
         speedups.append(summary["speedup_ratio"])
         avg_accepted.append(summary["average_accepted_per_step"])
-        sweep_results.append({
-            "k": k,
-            "speedup": summary["speedup_ratio"],
-            "avg_accepted": summary["average_accepted_per_step"],
-            "accepted_tokens": summary["accepted_tokens"],
-            "rejected_tokens": summary["rejected_tokens"],
-            "steps": summary["speculative_steps"],
-            "acceptance_rate": acceptance_rate,
-        })
+        sweep_results.append(
+            {
+                "k": k,
+                "speedup": summary["speedup_ratio"],
+                "avg_accepted": summary["average_accepted_per_step"],
+                "accepted_tokens": summary["accepted_tokens"],
+                "rejected_tokens": summary["rejected_tokens"],
+                "steps": summary["speculative_steps"],
+                "acceptance_rate": acceptance_rate,
+            }
+        )
 
         print(
             f"K={k}: steps={summary['speculative_steps']} | "
@@ -131,7 +139,15 @@ def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
     primary, secondary = "#3b82f6", "#8b5cf6"
 
-    ax1.plot(draft_sizes, speedups, marker="o", color=primary, linewidth=2.5, markersize=8, label="Speedup Ratio")
+    ax1.plot(
+        draft_sizes,
+        speedups,
+        marker="o",
+        color=primary,
+        linewidth=2.5,
+        markersize=8,
+        label="Speedup Ratio",
+    )
     ax1.axhline(1.0, color="#ef4444", linestyle="--", alpha=0.7, label="Baseline (1.0x)")
     ax1.set_title("Inference Acceleration (Speedup Ratio)", fontsize=14, fontweight="bold", pad=15)
     ax1.set_xlabel("Speculative Draft Size (K)", fontsize=12, labelpad=10)
@@ -141,7 +157,9 @@ def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft
     ax1.legend(frameon=True, facecolor="white", edgecolor="#e2e8f0")
 
     ax2.bar(draft_sizes, avg_accepted, color=secondary, alpha=0.85, edgecolor="#6d28d9", width=0.5)
-    ax2.set_title("Average Speculated Tokens Accepted per Step", fontsize=14, fontweight="bold", pad=15)
+    ax2.set_title(
+        "Average Speculated Tokens Accepted per Step", fontsize=14, fontweight="bold", pad=15
+    )
     ax2.set_xlabel("Speculative Draft Size (K)", fontsize=12, labelpad=10)
     ax2.set_ylabel("Average Tokens Accepted", fontsize=12, labelpad=10)
     ax2.set_xticks(draft_sizes)
@@ -150,7 +168,9 @@ def run_benchmark(dataset: str, tokenizer_name: str, n_gram_size: int, max_draft
     plt.suptitle(
         f"Speculative Decoding — {dataset} (sample #{sample_index})\n"
         f"{n_gram_size}-gram drafter · {tokenizer_name}",
-        fontsize=16, fontweight="bold", y=0.98,
+        fontsize=16,
+        fontweight="bold",
+        y=0.98,
     )
     plt.tight_layout()
 
@@ -169,17 +189,17 @@ if __name__ == "__main__":
         help="Dataset to run (default: wiki_demo)",
     )
     parser.add_argument("--tokenizer", type=str, default=None, help="Override tokenizer name")
-    parser.add_argument("--n",         type=int, default=None, help="Override n-gram size")
+    parser.add_argument("--n", type=int, default=None, help="Override n-gram size")
     parser.add_argument("--max_draft", type=int, default=None, help="Override max draft size K")
-    parser.add_argument("--index",     type=int, default=None, help="Override sample index")
+    parser.add_argument("--index", type=int, default=None, help="Override sample index")
 
     args = parser.parse_args()
 
     # Load per-dataset config, then apply CLI overrides
     cfg = load_experiment_config(args.dataset)
-    tokenizer_name = args.tokenizer  or cfg.get("tokenizer_name", "Qwen/Qwen2.5-0.5B-Instruct")
-    n_gram_size    = args.n          or cfg.get("n_gram_size", 3)
-    max_draft      = args.max_draft  or cfg.get("max_draft", 6)
-    sample_index   = args.index      if args.index is not None else cfg.get("sample_index", 0)
+    tokenizer_name = args.tokenizer or cfg.get("tokenizer_name", "Qwen/Qwen2.5-0.5B-Instruct")
+    n_gram_size = args.n or cfg.get("n_gram_size", 3)
+    max_draft = args.max_draft or cfg.get("max_draft", 6)
+    sample_index = args.index if args.index is not None else cfg.get("sample_index", 0)
 
     run_benchmark(args.dataset, tokenizer_name, n_gram_size, max_draft, sample_index)

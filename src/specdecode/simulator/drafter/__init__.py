@@ -1,4 +1,5 @@
 """specdecode.simulator.drafter — drafter implementations."""
+
 from specdecode.simulator.drafter.nGramDrafter import NGramDrafter
 from specdecode.simulator.drafter.tensorNGramDrafter import (
     NGramIndex,

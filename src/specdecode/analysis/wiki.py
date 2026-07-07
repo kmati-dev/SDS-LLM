@@ -193,7 +193,7 @@ def analyse_tokenizer(
           f"(≤{args.max_target_tokens} tokens each)")
 
     # ── Index (max_k=2 for n≤3 on the full corpus) ──
-    print(f"[build] indexing corpus (max_k=2)...")
+    print("[build] indexing corpus (max_k=2)...")
     index = NGramIndex(corpus_tokens, max_k=2, cap_positions=args.cap_positions)
 
     results: Dict = {"repo": repo, "fertility": fert, "corpus_tokens": full_n,
@@ -217,7 +217,7 @@ def analyse_tokenizer(
     results["corpus_size_sweep"] = size_rows
 
     # ── B. Budget sweep (n=3, depth, full corpus) ──
-    print(f"\n[B] BUDGET SWEEP  (n=3, depth, full corpus)")
+    print("\n[B] BUDGET SWEEP  (n=3, depth, full corpus)")
     print(f"    {'B':>3} {'speedup':>9} {'avg_acc':>8} {'chars/step':>11} "
           f"{'no_draft':>9} {'partial':>8} {'full_acc':>9}")
     budget_rows = []
@@ -234,14 +234,14 @@ def analyse_tokenizer(
     results["budget_sweep"] = budget_rows
 
     # ── D. Depth vs Width (full corpus, n=3) ──
-    print(f"\n[D] DEPTH vs WIDTH  (n=3, full corpus, fixed budget B = S×T)")
+    print("\n[D] DEPTH vs WIDTH  (n=3, full corpus, fixed budget B = S×T)")
     print(f"    {'budget':>6} {'mode':>14} {'S×T':>7} {'speedup':>9} {'chars/step':>11} {'avg_acc':>8}")
     dw_rows = []
     for B in args.depthwidth_budgets:
         configs = [("depth", 1, B)]
         if B >= 4:
             configs.append(("width-half", 2, B // 2))
-        configs.append((f"width-full", B, 1))
+        configs.append(("width-full", B, 1))
         for mode, S, T in configs:
             drafter = IndexedTensorNGramDrafter(index, n=3, num_sequences=S, draft_depth=T)
             agg = run_targets(tok, drafter, targets)

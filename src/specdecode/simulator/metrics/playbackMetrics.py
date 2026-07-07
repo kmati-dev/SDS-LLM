@@ -1,4 +1,5 @@
 """Metrics collector for speculative decoding simulation steps."""
+
 from typing import Dict, List, Optional
 
 
@@ -17,9 +18,9 @@ class PlaybackMetrics:
 
         # Step-type breakdown
         self.step_types: Dict[str, int] = {
-            "no_draft":    0,  # drafter returned nothing
+            "no_draft": 0,  # drafter returned nothing
             "full_reject": 0,  # draft produced but first token wrong
-            "partial":     0,  # some tokens accepted, then mismatch
+            "partial": 0,  # some tokens accepted, then mismatch
             "full_accept": 0,  # all draft tokens accepted
         }
 
@@ -69,29 +70,29 @@ class PlaybackMetrics:
         # Log mismatch (only when there's a real mismatch and we have full context)
         has_mismatch = draft_size > 0 and accepted_count < draft_size
         has_context = (
-            context_ids is not None
-            and draft_ids is not None
-            and complete_tokens is not None
+            context_ids is not None and draft_ids is not None and complete_tokens is not None
         )
         if has_mismatch and has_context and len(self.mismatch_log) < 200:
             mismatch_pos = len(context_ids) + accepted_count  # type: ignore[arg-type]
-            self.mismatch_log.append({
-                "step": step_idx,
-                "context_ids": list(context_ids[-6:]),  # type: ignore[index]
-                "draft_ids": list(draft_ids),  # type: ignore[arg-type]
-                "accepted_count": accepted_count,
-                "expected_id": (
-                    complete_tokens[mismatch_pos]  # type: ignore[index]
-                    if mismatch_pos < len(complete_tokens)  # type: ignore[arg-type]
-                    else None
-                ),
-                "drafted_id": (
-                    draft_ids[accepted_count]  # type: ignore[index]
-                    if accepted_count < len(draft_ids)  # type: ignore[arg-type]
-                    else None
-                ),
-                "n_used": n_used,
-            })
+            self.mismatch_log.append(
+                {
+                    "step": step_idx,
+                    "context_ids": list(context_ids[-6:]),  # type: ignore[index]
+                    "draft_ids": list(draft_ids),  # type: ignore[arg-type]
+                    "accepted_count": accepted_count,
+                    "expected_id": (
+                        complete_tokens[mismatch_pos]  # type: ignore[index]
+                        if mismatch_pos < len(complete_tokens)  # type: ignore[arg-type]
+                        else None
+                    ),
+                    "drafted_id": (
+                        draft_ids[accepted_count]  # type: ignore[index]
+                        if accepted_count < len(draft_ids)  # type: ignore[arg-type]
+                        else None
+                    ),
+                    "n_used": n_used,
+                }
+            )
 
     @property
     def average_accepted_per_step(self) -> float:

@@ -1,4 +1,5 @@
 """Abstract base class for the Draft Model in speculative decoding."""
+
 from abc import ABC, abstractmethod
 from typing import List
 

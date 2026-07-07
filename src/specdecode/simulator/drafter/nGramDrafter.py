@@ -1,4 +1,5 @@
 """N-gram based drafter implementation for speculative decoding."""
+
 from typing import List
 
 from specdecode.interface.abstractDrafter import AbstractDrafter
@@ -17,7 +18,7 @@ class NGramDrafter(AbstractDrafter):
         self.corpus_tokens = corpus_tokens
         self.n = n
         self.draft_size = draft_size
-        self.last_n_used: int = 0          # which n-gram size was used in last call
+        self.last_n_used: int = 0  # which n-gram size was used in last call
         self.last_match_corpus_idx: int = -1  # where in corpus the match was found
 
     def generate_draft(self, prompt: List[int]) -> List[int]:

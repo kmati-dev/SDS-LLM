@@ -1,4 +1,5 @@
 """Playback simulation classes for speculative decoding."""
+
 from typing import Any, List, Optional
 
 import torch
@@ -28,7 +29,7 @@ class SpeculativePlayback(AbstractPlayback):
         super().__init__(tokenizer, drafter, verifier, metrics)
         self.metrics: Optional[PlaybackMetrics] = metrics
 
-    def run_playback(self, input_data: str, use_drafter: bool = True) -> str:
+    def run_playback(self, input_data: str, use_drafter: bool = True) -> str:  # noqa: C901
         complete_tokens = self.tokenizer.encode(input_data)
         if not complete_tokens:
             return ""
@@ -58,7 +59,8 @@ class SpeculativePlayback(AbstractPlayback):
                         current_prefix.append(complete_tokens[next_gt_idx])
                     if self.metrics:
                         self.metrics.record_step(
-                            0, 0,
+                            0,
+                            0,
                             draft_size=len(draft_tokens),
                             step_idx=step_idx,
                             context_ids=prefix_snapshot,
@@ -151,7 +153,8 @@ class TensorSpeculativePlayback(AbstractPlayback):
                 chosen_ids: List[int] = []
                 if self.metrics and chosen >= 0 and draft_tokens.numel() > 0:  # type: ignore[operator]
                     chosen_ids = [
-                        int(t) for t in draft_tokens[chosen].tolist()  # type: ignore[index]
+                        int(t)
+                        for t in draft_tokens[chosen].tolist()  # type: ignore[index]
                         if t != PAD_ID
                     ]
 

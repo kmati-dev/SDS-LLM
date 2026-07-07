@@ -1,4 +1,5 @@
 """Greedy verifier implementation for speculative decoding."""
+
 from typing import Dict, List
 
 from specdecode.interface.abstractVerifier import AbstractVerifier

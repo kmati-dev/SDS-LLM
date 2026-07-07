@@ -1,4 +1,5 @@
 """Abstract base class for tensor-based Verifiers in speculative decoding."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

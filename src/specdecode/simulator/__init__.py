@@ -4,6 +4,7 @@ specdecode.simulator — concrete implementations package.
 Re-exports all public symbols so that ``from specdecode.simulator import X``
 continues to work.
 """
+
 from specdecode.simulator.drafter.nGramDrafter import NGramDrafter
 from specdecode.simulator.drafter.tensorNGramDrafter import (
     NGramIndex,

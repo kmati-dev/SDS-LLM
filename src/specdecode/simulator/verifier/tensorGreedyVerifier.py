@@ -1,4 +1,5 @@
 """Tensor-based greedy verifier for batched speculative decoding."""
+
 from typing import Dict, List
 
 import torch

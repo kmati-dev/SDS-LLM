@@ -1,4 +1,5 @@
 """Tensor-based n-gram drafter implementations for speculative decoding."""
+
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -73,9 +74,9 @@ class TensorNGramDrafter(AbstractTensorDrafter):
     ) -> None:
         self.corpus_tokens = corpus_tokens
         self.n = n
-        self.num_sequences = num_sequences    # S — number of candidate sequences
-        self.draft_depth = draft_depth        # T — token depth per candidate
-        self.last_n_used: int = 0             # which n-gram size was used in last call
+        self.num_sequences = num_sequences  # S — number of candidate sequences
+        self.draft_depth = draft_depth  # T — token depth per candidate
+        self.last_n_used: int = 0  # which n-gram size was used in last call
         self.last_match_corpus_idx: int = -1  # where in corpus the first match was found
 
     def generate_draft(self, prompt: List[int]) -> torch.Tensor:
@@ -90,13 +91,10 @@ class TensorNGramDrafter(AbstractTensorDrafter):
             return torch.empty((0, 0), dtype=torch.long)
 
         # Right-pad each candidate to draft_depth and stack into a [S, T] tensor.
-        padded = [
-            cand + [PAD_ID] * (self.draft_depth - len(cand))
-            for cand in candidates
-        ]
+        padded = [cand + [PAD_ID] * (self.draft_depth - len(cand)) for cand in candidates]
         return torch.tensor(padded, dtype=torch.long)
 
-    def _collect_candidates(self, prompt: List[int]) -> List[List[int]]:
+    def _collect_candidates(self, prompt: List[int]) -> List[List[int]]:  # noqa: C901
         """
         Gather up to ``num_sequences`` distinct continuations (each up to ``draft_depth``
         tokens) for the longest matching prefix, backing off from (n-1)-gram to 1-gram.
@@ -112,16 +110,14 @@ class TensorNGramDrafter(AbstractTensorDrafter):
             prefix_len = len(search_prefix)
 
             candidates: List[List[int]] = []
-            seen_continuations: set = set()    # dedupe identical continuations
-            seen_first_tokens: set = set()     # encourage diverse first tokens (branching)
+            seen_continuations: set = set()  # dedupe identical continuations
+            seen_first_tokens: set = set()  # encourage diverse first tokens (branching)
 
             for i in range(len(self.corpus_tokens) - prefix_len):
                 if self.corpus_tokens[i : i + prefix_len] != search_prefix:
                     continue
 
-                draft = self.corpus_tokens[
-                    i + prefix_len : i + prefix_len + self.draft_depth
-                ]
+                draft = self.corpus_tokens[i + prefix_len : i + prefix_len + self.draft_depth]
                 if not draft:
                     continue
 
@@ -194,13 +190,10 @@ class IndexedTensorNGramDrafter(AbstractTensorDrafter):
         if not candidates:
             return torch.empty((0, 0), dtype=torch.long)
 
-        padded = [
-            cand + [PAD_ID] * (self.draft_depth - len(cand))
-            for cand in candidates
-        ]
+        padded = [cand + [PAD_ID] * (self.draft_depth - len(cand)) for cand in candidates]
         return torch.tensor(padded, dtype=torch.long)
 
-    def _collect_candidates(self, prompt: List[int]) -> List[List[int]]:
+    def _collect_candidates(self, prompt: List[int]) -> List[List[int]]:  # noqa: C901
         ct = self.corpus_tokens
         depth = self.draft_depth
         lim = self.size_limit

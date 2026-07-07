@@ -8,6 +8,7 @@ This module re-exports them so that existing imports of the form::
 
 continue to work unchanged.
 """
+
 from specdecode.interface.abstractDrafter import AbstractDrafter
 from specdecode.interface.abstractVerifier import AbstractVerifier
 from specdecode.interface.abstractPlayback import AbstractPlayback
