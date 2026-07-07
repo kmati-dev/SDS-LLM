@@ -47,3 +47,4 @@ select = ["E", "F", "W", "C901", "ANN201"]
 [tool.pyright]
 pythonVersion = "3.8"
 include = ["src"]
+exclude = ["src/specdecode/analysis", "src/specdecode/datasets"]
