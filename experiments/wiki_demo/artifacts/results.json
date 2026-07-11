@@ -14,7 +14,10 @@
       "accepted_tokens": 47,
       "rejected_tokens": 14,
       "steps": 61,
-      "acceptance_rate": 0.7705
+      "acceptance_rate": 0.7705,
+      "drafter_calls": 61,
+      "drafter_wall_time_ms": 1.528378,
+      "average_drafter_wall_time_ms": 0.025055
     },
     {
       "k": 2,
@@ -23,7 +26,10 @@
       "accepted_tokens": 59,
       "rejected_tokens": 39,
       "steps": 49,
-      "acceptance_rate": 0.602
+      "acceptance_rate": 0.602,
+      "drafter_calls": 49,
+      "drafter_wall_time_ms": 1.336501,
+      "average_drafter_wall_time_ms": 0.027276
     },
     {
       "k": 3,
@@ -32,7 +38,10 @@
       "accepted_tokens": 66,
       "rejected_tokens": 60,
       "steps": 42,
-      "acceptance_rate": 0.5238
+      "acceptance_rate": 0.5238,
+      "drafter_calls": 42,
+      "drafter_wall_time_ms": 1.131751,
+      "average_drafter_wall_time_ms": 0.026946
     },
     {
       "k": 4,
@@ -41,7 +50,10 @@
       "accepted_tokens": 69,
       "rejected_tokens": 87,
       "steps": 39,
-      "acceptance_rate": 0.4423
+      "acceptance_rate": 0.4423,
+      "drafter_calls": 39,
+      "drafter_wall_time_ms": 1.078538,
+      "average_drafter_wall_time_ms": 0.027655
     },
     {
       "k": 5,
@@ -50,7 +62,10 @@
       "accepted_tokens": 73,
       "rejected_tokens": 102,
       "steps": 35,
-      "acceptance_rate": 0.4171
+      "acceptance_rate": 0.4171,
+      "drafter_calls": 35,
+      "drafter_wall_time_ms": 0.92433,
+      "average_drafter_wall_time_ms": 0.026409
     },
     {
       "k": 6,
@@ -59,7 +74,10 @@
       "accepted_tokens": 74,
       "rejected_tokens": 130,
       "steps": 34,
-      "acceptance_rate": 0.3627
+      "acceptance_rate": 0.3627,
+      "drafter_calls": 34,
+      "drafter_wall_time_ms": 0.93196,
+      "average_drafter_wall_time_ms": 0.027411
     }
   ]
 }
